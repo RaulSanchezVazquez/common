@@ -43,17 +43,17 @@ class AutoEnc(nn.Module):
 
     Parameters
     ----------
-    mb_size : int
-    z_dim : int
-    h_dim : in
-    lr : float
-    train_size : float
-    epochs : int
-    p_dropout : float
-    weight_decay : float
-    allow_cuda : bool
-    verbose : bool
-    random_state : int
+        mb_size : int
+        z_dim : int
+        h_dim : in
+        lr : float
+        train_size : float
+        epochs : int
+        p_dropout : float
+        weight_decay : float
+        allow_cuda : bool
+        verbose : bool
+        random_state : int
     '''
     def __init__(
         self,
@@ -156,7 +156,8 @@ class AutoEnc(nn.Module):
         self.Decoder = torch.nn.Sequential(
             torch.nn.Linear(self.z_dim, self.h_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(self.h_dim, self.X_dim)
+            torch.nn.Linear(self.h_dim, self.X_dim),
+            torch.nn.Sigmoid()
         )
 
         self.Encoder_solver = optim.Adam(
@@ -175,35 +176,33 @@ class AutoEnc(nn.Module):
 
     def fit(self, X):
         '''
-        self = m
-
         '''
+        if not self.is_fitted():
+            self.X = pd.DataFrame(X).copy()
+            self.X_dim = self.X.shape[1]
 
-        self.X = X.copy()
-        self.X_dim = self.X.shape[1]
+            self.split_train_test()
+            self.init_layers()
 
-        self.split_train_test()
-        self.init_layers()
+            if self.allow_cuda:
+                self.Encoder.cuda()
+                self.Decoder.cuda()
 
-        if self.allow_cuda:
-            self.Encoder.cuda()
-            self.Decoder.cuda()
-
-        self.epoch_cnt = 0
-        self.recon_train_loss = []
-        self.fitted = True
-        self.iterate_n_epochs(epochs=self.epochs)
+            self.epoch_cnt = 0
+            self.recon_train_loss = []
+            self.fitted = True
+            self.iterate_n_epochs(epochs=self.epochs)
 
     def iterate_n_epochs(self, epochs):
         '''
         Makes N training iterations
         '''
-
-        self.Encoder.train()
-        self.Decoder.train()
         self.criterion = nn.MSELoss()
         epoch_cnt = 0
+
         while(epoch_cnt < epochs):
+            self.Encoder.train()
+            self.Decoder.train()
 
             dataloader = self.make_dataloader(self.X_train)
             for batch_idx, (x, _) in enumerate(dataloader):
@@ -308,18 +307,3 @@ class AutoEnc(nn.Module):
 
     def is_fitted(self):
         return self.fitted
-
-def test():
-    from sklearn import datasets
-
-    iris = datasets.load_iris()
-    X = iris.data
-
-    model = AutoEnc(
-        verbose=True,
-        z_dim=2,
-        h_dim=10,
-        epochs=100,
-        train_size=.5)
-    model.fit(X)
-    pd.DataFrame(model.losses).plot(grid=True)
