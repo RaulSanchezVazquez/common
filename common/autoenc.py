@@ -20,9 +20,40 @@ from sklearn.model_selection import train_test_split
 
 class AutoEnc(nn.Module):
     '''
+    Basic Auto-Encoder.
+
+    Optimized via Mean Square Error Loss and Adam optimizer.
+
+    It has the form:
+
+    AutoEnc(
+      (Encoder): Sequential(
+        (0): INPUT_LAYER to H_DIM_LAYER
+        (1): ReLU()
+        (2): H_DIM_LAYERT to Z_DIM_LAYER
+        (3): ReLU()
+        (4): Dropout(p=0.0)
+      )
+      (Decoder): Sequential(
+        (0): Z_DIM_LAYER to H_DIM_LAYET
+        (1): ReLU()
+        (2): H_DIM_LAYERT to INPUT_LAYER
+      )
+    )
+
     Parameters
     ----------
-
+    mb_size : int
+    z_dim : int
+    h_dim : in
+    lr : float
+    train_size : float
+    epochs : int
+    p_dropout : float
+    weight_decay : float
+    allow_cuda : bool
+    verbose : bool
+    random_state : int
     '''
     def __init__(
         self,
