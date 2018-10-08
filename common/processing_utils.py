@@ -3,7 +3,7 @@
 """
 Created on Sun Jul  1 23:44:10 2018
 
-@author: raulsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 def drop_high_corr(data, corr_th=.95):

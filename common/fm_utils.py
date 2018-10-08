@@ -3,7 +3,7 @@
 """
 Created on Thu Sep 20 10:34:43 2018
 
-@author: lsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 import time

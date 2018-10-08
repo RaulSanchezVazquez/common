@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Sep  4 13:53:37 2018
-
-@author: lsanchez
-"""
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
 Created on Wed Mar  7 12:05:42 2018
 
-@author: raulsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 import multiprocessing

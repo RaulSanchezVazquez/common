@@ -3,15 +3,7 @@
 """
 Created on Wed Sep  5 16:01:01 2018
 
-@author: lsanchez
-"""
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jun 26 21:54:50 2018
-
-@author: raulsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 import pandas as pd

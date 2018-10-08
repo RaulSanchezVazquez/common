@@ -3,7 +3,7 @@
 """
 Created on Tue Aug 21 10:34:57 2018
 
-@author: lsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 

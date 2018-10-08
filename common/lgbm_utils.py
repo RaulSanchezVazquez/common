@@ -3,7 +3,7 @@
 """
 Created on Thu Aug  9 10:12:13 2018
 
-@author: lsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 import time
@@ -105,7 +105,7 @@ def fit(
             ]).T
 
             fold_result = classification_report(
-                y_true=y_train.iloc[test_idx],
+                y_true=y_train.iloc[test_idx].values,
                 y_pred=test_y_pred,
                 y_score=test_y_score)
 

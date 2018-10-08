@@ -3,7 +3,7 @@
 """
 Created on Tue Sep 18 11:22:06 2018
 
-@author: lsanchez
+@author: Raul Sanchez-Vazquez
 """
 
 
@@ -14,7 +14,8 @@ class WOES():
             self,
             min_freq=60,
             verbose=False,
-            low_freq_value='WOE_OTHER'):
+            low_freq_value='WOE_OTHER',
+            log_scale=True):
         """
         """
 
@@ -25,9 +26,11 @@ class WOES():
 
         self.verbose = verbose
         self.low_freq_value = low_freq_value
+        self.log_scale = log_scale
 
     def fit(self, X, y):
         """
+
         """
 
         self.X = X.copy()
@@ -70,7 +73,7 @@ class WOES():
 
         woe = {}
         for unique_val in X_f.index.unique():
-            val_idx = X_f.loc[unique_val].tolist()
+            val_idx = X_f.loc[[unique_val]].tolist()
 
             # Get local targets
             y_local = self.y.loc[val_idx]
@@ -81,7 +84,10 @@ class WOES():
             # Get percentage
             percent = y_local_vc / self.y_vc
 
-            woe[unique_val] = np.log(percent[0] / percent[1])
+            woe[unique_val] = percent[0] / percent[1]
+
+            if self.log_scale:
+                woe[unique_val] = np.log(woe[unique_val])
 
         return woe
 
