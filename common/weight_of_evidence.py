@@ -9,7 +9,7 @@ Created on Tue Sep 18 11:22:06 2018
 
 import numpy as np
 
-class WOES():
+class WOE():
     def __init__(
             self,
             min_freq=60,
@@ -20,13 +20,12 @@ class WOES():
         """
 
         self.min_freq = min_freq
-
-        self.categ_features = []
-        self.woes = {}
-
         self.verbose = verbose
         self.low_freq_value = low_freq_value
         self.log_scale = log_scale
+
+        self.categ_features_ = []
+        self.woe_ = {}
 
     def fit(self, X, y):
         """
@@ -37,19 +36,17 @@ class WOES():
         self.y = y.copy()
 
         # get categ. features
-        self.categ_features = self.X.select_dtypes('object').columns
+        self.categ_features_ = self.X.select_dtypes('object').columns
 
         self.y_vc = self.y.value_counts()
 
-
-        self.woes = {}
-        for f in self.categ_features:
+        for f in self.categ_features_:
             if self.verbose:
                 print(f)
 
             woe = self.get_feature_woes(f)
 
-            self.woes[f] = woe
+            self.woe_[f] = woe
 
 
     def get_feature_woes(self, f):
@@ -95,8 +92,8 @@ class WOES():
         """
         """
         X_ = X_.copy()
-        for f in self.categ_features:
-            woe = self.woes[f]
+        for f in self.categ_features_:
+            woe = self.woe_[f]
             valid_values = list(woe.keys())
 
             is_valid_value = X_[f].isin(valid_values)

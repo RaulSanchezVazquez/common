@@ -25,7 +25,7 @@ def add_bar_values(ax, fontsize=10, kind=None, rotate=None):
             text = str(height)
         else:
             x = width
-            y = bar.get_y()
+            y = bar.get_y() + (bar.get_height() / 2)
             text = str(width)
 
         ax.text(
