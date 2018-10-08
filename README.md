@@ -4,7 +4,7 @@
 Whenever it is possible we follow sklearn-like most common methods and practices, this means:
 
 - Models have the well known `fit()`, `predict()` and `predict_proba()` methods.
-- Data Transformers have the `transform()` and `transform_inverse()` methods.
+- Data Transformers have the `transform()` and `inverse_transform()` methods.
 
 
 What it provides:
