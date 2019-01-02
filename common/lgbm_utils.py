@@ -16,9 +16,10 @@ from tqdm import tqdm
 
 from common.learning_utils import get_n_rand_params
 from common.eval_utils import classification_report
+from common import parallel
 
-# Random Grid-Search
-GS_params_regression = {
+# Parameter distribution for random-search on binary classification task
+params_dist_regression = {
     "num_leaves": [4, 8, 12, 16, 25, 32, 50, 64, 90, 100, 128, 256, 400, 512],
     "max_depth": [-1, 2, 4, 6, 8, 12, 16, 24, 32, 50, 64],
     "learning_rate": [0.01, 0.015, 0.025, 0.05, 0.1, 0.2],
@@ -32,10 +33,12 @@ GS_params_regression = {
     "subsample_freq": [0, 1, 3, 5, 6, 7, 8, 9, 1013, 15],
     "colsample_bytree": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     "reg_lambda": [0.0, 0.01, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 10, 15],
-    "reg_alpha": [0.0, 0.01, 0.25, 0.5, .65, 0.75, 1, 1.25, 1.5, 2, 3, 5, 7]
+    "reg_alpha": [0.0, 0.01, 0.25, 0.5, .65, 0.75, 1, 1.25, 1.5, 2, 3, 5, 7],
+    "verbose":[-1]
 }
 
-GS_params_binary = {
+# Parameter distribution for random-search on binary classification task
+params_dist_binary = {
     "num_leaves": [4, 8, 12, 16, 25, 32, 50, 64, 90, 100, 128, 256, 400, 512],
     "max_depth": [-1, 2, 4, 6, 8, 12, 16, 24, 32, 50, 64],
     "learning_rate": [0.01, 0.015, 0.025, 0.05, 0.1, 0.2],
@@ -49,93 +52,107 @@ GS_params_binary = {
     "subsample_freq": [0, 1, 3, 5, 6, 7, 8, 9, 1013, 15],
     "colsample_bytree": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     "reg_lambda": [0.0, 0.01, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 10, 15],
-    "reg_alpha": [0.0, 0.01, 0.25, 0.5, .65, 0.75, 1, 1.25, 1.5, 2, 3, 5, 7]
+    "reg_alpha": [0.0, 0.01, 0.25, 0.5, .65, 0.75, 1, 1.25, 1.5, 2, 3, 5, 7],
+    "verbose":[-1]
 }
 
-def fit(
-    X_train,
-    y_train,
-    log_path=None,
-    iterations=50,
-    n_splits=5,
-    random_state=42):
+
+global booster_
+def get_single_pred_leaf_outputs(params):
     """
+    Retrieve a leaf outputs given tree_id and leaf_id.
+    This is a helper function used in get_leaf_outputs()
+
+    Parameters
+    ----------
+    params : tuple
+        Tuple containing (tree_id, leaf_id)
+
+    Return
+    ------
+    leaf_weight : float
+        The corresponding leaf weigth
     """
 
-    # Obtain random grid-search parameters
-    params_gridsearch = get_n_rand_params(
-        search_space=GS_params_binary,
-        size=iterations)
+    tree_id, leaf_id = params
 
-    ks = KFold(n_splits=n_splits, random_state=random_state)
+    leaf_weight = booster_.get_leaf_output(
+        tree_id=tree_id,
+        leaf_id=leaf_id)
 
-    # Perform evaluation rounds
-    params_gridsearch_results = []
-    progress_bar = tqdm(total=iterations)
-    for it, params in enumerate(params_gridsearch):
-        param_results = []
-        start = time.time()
-        for train_idx, test_idx in ks.split(X_train):
-            dtrain = lgb.Dataset(
-                X_train.iloc[train_idx],
-                label=y_train.iloc[train_idx])
+    return leaf_weight
 
-            dtest = lgb.Dataset(
-                X_train.iloc[test_idx],
-                label=y_train.iloc[test_idx])
 
-            params['nthread'] = 16
+def get_leaf_outputs(model, X):
+    """
+    Retrieves leaf outputs of a LGBM booster given a leaf-ids array
 
-            gbm = lgb.train(
-                params=params,
-                train_set=dtrain,
-                num_boost_round=3000,
-                valid_sets=dtest,
-                early_stopping_rounds=50,
-                verbose_eval=False)
+    Parameters
+    ----------
+    booster : lightgbm.basic.Booster
+        LGBM booster model
+    leaf_ids : np.array
+        Leaf indexes obtained with model.predict(X, pred_leaf=True)
+    Return
+    ------
+        leaf_outputs : np.array
 
-            test_y_score = gbm.predict(
-                X_train.iloc[test_idx],
-                raw_score=True)
-            test_y_pred = (test_y_score < .8).astype(int)
+    Example
+    --------
+        # model is a fitted lgbm.LGBMClassifier()
+        booster = model.booster_
+        leaf_ids = model.predict(X, pred_leaf=True)
+        get_leaf_outputs(booster, leaf_ids)
 
-            test_y_score = np.vstack([
-                test_y_score * -1,
-                test_y_score
-            ]).T
+        ground_truth = model.predict_proba(X)
+        y_pred_hand = get_predictions_from_ouput_leafs(leaf_output)
+    """
+    global booster_
+    booster_ = model.booster_
+    leaf_index = model.predict(X, pred_leaf=True)
 
-            fold_result = classification_report(
-                y_true=y_train.iloc[test_idx].values,
-                y_pred=test_y_pred,
-                y_score=test_y_score)
+    n_trees = booster_.current_iteration()
+    n_rows = X.shape[0]
 
-            param_results.append(fold_result['AUC'].iloc[-1])
+    tree_index = np.arange(0, n_trees).reshape(1, -1).repeat(n_rows, 0)
 
-        progress_bar.update(1)
-        params['eval_metric_result'] = pd.Series(param_results).mean()
-        params['time'] = round(time.time() - start, 2)
+    tree_leaf_idx = np.vstack([
+        tree_index.flatten(),
+        leaf_index.flatten()
+    ]).T
 
-        params_gridsearch_results.append(params)
-        if not log_path is None:
-            pd.DataFrame(
-                params_gridsearch_results
-            ).to_csv(log_path, index=False)
+    leaf_output = parallel.apply(
+        get_single_pred_leaf_outputs,
+        tree_leaf_idx,
+        n_jobs=32)
 
-        print('[%s] %s' % (it + 1, params))
-        print('[%s] %s' % (it + 1, params['eval_metric_result']))
+    leaf_output = np.array(
+        leaf_output
+    ).reshape(n_rows, n_trees)
 
-    if not log_path is None:
-        results = pd.read_csv(log_path)
+    return leaf_output
 
-        results['eval_metric_result'].plot(
-            kind='area',
-            use_index=False,
-            grid=True,
-            alpha=.2,
-            ylim=(.5, .8))
+def get_predictions_from_ouput_leafs(leaf_outputs):
+    """
+    Computes predictions from raw outputs of the lgbm
+    gradient boosting.
 
-        best_result = results.sort_values(
-            'eval_metric_result'
-        ).iloc[[-1]]
+    Paramaters
+    ----------
+    leaf_outputs: np.array
+        Array with shapes: (n_rows x leaf_outputs) for which to
+        compute {0, 1} class probability.
 
-        return best_result.iloc[0]
+    Return
+    ------
+    predic_proba : np.array
+        Class 1 probability
+
+    Example
+    -------
+
+
+    """
+    predic_proba = 1 / ( 1 + np.exp(-1 * leaf_outputs.sum(1)))
+
+    return predic_proba

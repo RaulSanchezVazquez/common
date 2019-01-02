@@ -72,7 +72,7 @@ def AUC(y_true, y_pred, n_bootstraps=2000, bootstrap_seed=42):
 def AUC_DeLong_Xu(y_true, y_score, alpha=0.95):
     """
     Computes the AUC and its respective confidence Interval.
-    
+
     y_true : np.array
         np.Array containing the binary target
     y_score : np.array
