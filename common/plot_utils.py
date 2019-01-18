@@ -13,16 +13,17 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex
 import matplotlib.colors as mcolors
 
-def add_bar_values(ax, fontsize=10, kind=None, rotate=None):
+def add_bar_values(ax, fontsize=10, kind=None, rotation=None, use_int=False):
     if kind is None:
         kind = 'bar'
 
-    if (rotate is None) and (kind == 'bar'):
-        rotate = 45
-    else:
-        rotate = 0
+    if (rotation is None) and (kind == 'bar'):
+        rotation = 45
+    elif (rotation is None) and (kind == 'barh'):
+        rotation = 0
 
     for bar in ax.patches:
+        flag_prevent_plot = False
         height = bar.get_height()
         width = bar.get_width()
 
@@ -30,16 +31,57 @@ def add_bar_values(ax, fontsize=10, kind=None, rotate=None):
             x = bar.get_x() + (width / 2)
             y = height
             text = str(height)
+            if y == 0:
+                flag_prevent_plot = True
         else:
             x = width
             y = bar.get_y() + (bar.get_height() / 2)
+
             text = str(width)
+            if x == 0:
+                flag_prevent_plot = True
+
+        if use_int:
+            text = text.split('.')[0]
+
+        if not flag_prevent_plot:
+            ax.text(
+                x=x, y=y,
+                s=text,
+                fontsize=10,
+                rotation=rotation,
+                horizontalalignment='left',
+                verticalalignment='bottom'
+                )
+    return ax
+
+def add_arbitrary_bar_values(labels, ax, fontsize=10, kind=None, rotation=None, use_int=True):
+    if kind is None:
+        kind = 'bar'
+
+    if (rotation is None) and (kind == 'bar'):
+        rotation = 45
+    elif (rotation is None) and (kind == 'barh'):
+        rotation = 0
+
+    for bar_it, bar in enumerate(ax.patches):
+        text = labels[bar_it]
+
+        height = bar.get_height()
+        width = bar.get_width()
+
+        if kind == 'bar':
+            x = bar.get_x() + (width / 2)
+            y = height
+        else:
+            x = width
+            y = bar.get_y() + (bar.get_height() / 2)
 
         ax.text(
             x=x, y=y,
             s=text,
             fontsize=10,
-            rotation=rotate,
+            rotation=rotation,
             horizontalalignment='left',
             verticalalignment='bottom'
             )
